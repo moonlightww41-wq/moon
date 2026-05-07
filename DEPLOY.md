@@ -18,6 +18,10 @@ PCが起動していなくてもLINE Webhookを受けるため、GitHubにpush�
 
 低頻度利用なら無料枠に収まりやすく、PC停止中でも安定します。GitHub Actionsからデプロイできます。
 
+今回の推奨構成です。
+
+Cloud Runは `min-instances 0` にして、LINEが来た時だけ起動します。WebhookはすぐLINEへ200を返し、その後にDrive/Calendar/CloudConvert処理を続けるため、デプロイ設定では `--no-cpu-throttling` を使っています。低頻度なら無料枠に収まりやすいですが、PDF処理が大量に走ると課金される可能性はあります。
+
 必要なGitHub Secrets:
 
 ```text
@@ -45,6 +49,33 @@ CAL_ENDO_NG
 GitHubの `Deploy Cloud Run` workflowを手動実行、または `main` にpushするとデプロイされます。
 
 発行されたCloud Run URLの `/webhook/line` をLINE Developersに設定します。
+
+### Bootstrap helper
+
+Google Cloud SDKが入っているPCまたはCloud Shellで実行できます。
+
+```powershell
+.\scripts\cloud-run-bootstrap.ps1 -ProjectId "<your-gcp-project-id>"
+```
+
+次に、Secret Managerへアプリ用の値を入れます。
+
+```powershell
+.\scripts\cloud-run-secrets.ps1 `
+  -ProjectId "<your-gcp-project-id>" `
+  -LineChannelSecret "<LINE channel secret>" `
+  -LineChannelAccessToken "<LINE channel access token>" `
+  -OpenAiApiKey "<OpenAI API key>" `
+  -GoogleOauthClientId "<Google OAuth client id>" `
+  -GoogleOauthClientSecret "<Google OAuth client secret>" `
+  -GoogleOauthRedirectUri "http://localhost" `
+  -GoogleOauthRefreshToken "<Google OAuth refresh token>" `
+  -CloudConvertApiKey "<CloudConvert API key>" `
+  -DriveStagingFolderId "1mI4vl_rmqYBvQdlpAkOw0unOClKVrE3d" `
+  -ProcessedFolderId "1-4-RPnsBUUdE8s2YaicksoDN0h7G9F0m" `
+  -CalEndo "m.endo3927@gmail.com" `
+  -CalEndoNg "7a49d0c7396f95d1b938fd52365185436b8a09860c640af54a5ff5d8d85a7beb@group.calendar.google.com"
+```
 
 ## Local GitHub Push
 
