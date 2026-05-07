@@ -1,0 +1,59 @@
+name: Deploy Cloud Run
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - src/**
+      - package.json
+      - package-lock.json
+      - Dockerfile
+      - .github/workflows/deploy-cloud-run.yml
+
+env:
+  SERVICE: line-calendar-drive-bot
+  REGION: asia-northeast1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push
+        run: |
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/line-bot/${{ env.SERVICE }}:${{ github.sha }}"
+          gcloud artifacts repositories create line-bot \
+            --repository-format=docker \
+            --location=${{ env.REGION }} \
+            --quiet || true
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Deploy
+        run: |
+          gcloud run deploy "${{ env.SERVICE }}" \
+            --image "$IMAGE" \
+            --region "${{ env.REGION }}" \
+            --platform managed \
+            --allow-unauthenticated \
+            --min-instances 0 \
+            --max-instances 2 \
+            --memory 512Mi \
+            --cpu 1 \
+            --set-env-vars NODE_ENV=production,OPENAI_MODEL=gpt-4.1-mini,DEFAULT_CALENDAR_ID=primary \
+            --set-secrets LINE_CHANNEL_SECRET=LINE_CHANNEL_SECRET:latest,LINE_CHANNEL_ACCESS_TOKEN=LINE_CHANNEL_ACCESS_TOKEN:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest,GOOGLE_OAUTH_CLIENT_ID=GOOGLE_OAUTH_CLIENT_ID:latest,GOOGLE_OAUTH_CLIENT_SECRET=GOOGLE_OAUTH_CLIENT_SECRET:latest,GOOGLE_OAUTH_REDIRECT_URI=GOOGLE_OAUTH_REDIRECT_URI:latest,GOOGLE_OAUTH_REFRESH_TOKEN=GOOGLE_OAUTH_REFRESH_TOKEN:latest,CLOUDCONVERT_API_KEY=CLOUDCONVERT_API_KEY:latest,DRIVE_STAGING_FOLDER_ID=DRIVE_STAGING_FOLDER_ID:latest,PROCESSED_FOLDER_ID=PROCESSED_FOLDER_ID:latest,CAL_ENDO=CAL_ENDO:latest,CAL_ENDO_NG=CAL_ENDO_NG:latest

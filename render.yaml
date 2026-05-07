@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: line-calendar-drive-bot
+    runtime: docker
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: LINE_CHANNEL_SECRET
+        sync: false
+      - key: LINE_CHANNEL_ACCESS_TOKEN
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4.1-mini
+      - key: GOOGLE_OAUTH_CLIENT_ID
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_OAUTH_REDIRECT_URI
+        sync: false
+      - key: GOOGLE_OAUTH_REFRESH_TOKEN
+        sync: false
+      - key: DEFAULT_CALENDAR_ID
+        value: primary
+      - key: DRIVE_STAGING_FOLDER_ID
+        sync: false
+      - key: PROCESSED_FOLDER_ID
+        sync: false
+      - key: CLOUDCONVERT_API_KEY
+        sync: false
+      - key: CAL_ENDO
+        sync: false
+      - key: CAL_ENDO_NG
+        sync: false
